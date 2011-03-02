@@ -1,4 +1,4 @@
-SDL_LIBS=-L/opt/local/lib -lSDL -lSDLmain -framework Cocoa
+SDL_LIBS=-L/opt/local/lib -lSDL -lSDLmain -framework Cocoa -Wl,-framework,OpenGL
 
 CXXFLAGS=-I/opt/local/include/SDL
 CXX=g++

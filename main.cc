@@ -1,109 +1,74 @@
 #include <iostream>
-#include <sstream>
 #include <SDL.h>
-#include "utils.h"
+#include <SDL_opengl.h>
 
 using namespace std;
 
-void DrawPixel(SDL_Surface *screen, int x, int y, Uint8 R, Uint8 G, Uint8 B) {
-	Uint32 color = SDL_MapRGB(screen->format, R, G, B);
-
-	if (SDL_MUSTLOCK(screen)) {
-		if (SDL_LockSurface(screen) < 0) {
-			cout << "Couldn't get lock." << endl;
-			return;
-		}
-	}
-
-    /*
-	cout << "color = " << color << endl;
-	Uint32 n = color;
-	int bitsPerColor = screen->format->BytesPerPixel * 8 / 3;
-	cout << "bitsPerColor " << bitsPerColor << endl;
-	for (int i = 0; i < 3; i++) {
-		cout << "[" << n % (2<<bitsPerColor) << "]";
-	}
-	cout << endl;
-    */
-
-	switch (screen->format->BytesPerPixel) {
-		case 1: { /* Assuming 8-bpp */
-			Uint8 *bufp;
-			bufp = (Uint8 *)screen->pixels + y * screen->pitch + x;
-			*bufp = color;
-		}
-		break;
-
-		case 2: {
-			Uint16 *bufp;
-			bufp = (Uint16 *)screen->pixels + y*screen->pitch/2 + x;
-			*bufp = color;
-		}
-		break;
-
-		case 3: {
-			Uint8 *bufp;
-			bufp = (Uint8 *)screen->pixels + y*screen->pitch + x;
-			*(bufp+screen->format->Rshift/8) = R;
-			*(bufp+screen->format->Gshift/8) = G;
-			*(bufp+screen->format->Bshift/8) = B;
-		}
-		break;
-
-		case 4: {
-			Uint32 *bufp;
-			bufp = (Uint32 *)screen->pixels + y*screen->pitch/4 + x;
-			*bufp = color;
-		}
-		break;
-	}
-
-	if (SDL_MUSTLOCK(screen)) {
-		SDL_UnlockSurface(screen);
-	}
-
-	SDL_UpdateRect(screen, x, y, 1, 1);
+void Draw() {
+    glClear(GL_COLOR_BUFFER_BIT);
+    glBegin(GL_TRIANGLES);
+    glColor3f(1, 0, 0);
+    glVertex2f(0.0, 0.0);
+    glColor3f(0, 1, 0);
+    glVertex2f(0.0, 100.0);
+    glColor3f(0, 0, 1);
+    glVertex2f(100, 100);
+    glEnd();
 }
 
-
 int main(int argc, char** argv) {
-	if (SDL_Init(SDL_INIT_AUDIO | SDL_INIT_VIDEO) < 0) {
+	if (SDL_Init(SDL_INIT_AUDIO | SDL_INIT_VIDEO | SDL_INIT_EVERYTHING) < 0) {
 		cout << "Unable to init SDL: " << SDL_GetError() << endl;
 		return 1;
 	}
 
+    SDL_GL_SetAttribute(SDL_GL_RED_SIZE, 8);
+    SDL_GL_SetAttribute(SDL_GL_GREEN_SIZE, 8);
+    SDL_GL_SetAttribute(SDL_GL_BLUE_SIZE, 8);
+    SDL_GL_SetAttribute(SDL_GL_DOUBLEBUFFER, 1);
+
 	SDL_Surface *screen;
-	screen = SDL_SetVideoMode(640, 480, 16, SDL_SWSURFACE);
+	screen = SDL_SetVideoMode(640, 480, 0, SDL_OPENGL);
 	if (screen == NULL) {
 		cout << "Unable to set 640x480 video: " << SDL_GetError() << endl;
 		return 1;
 	}
 	atexit(SDL_Quit);
 
-    cout << showByte(0xff) << endl;
-    cout << showByte(0x0a) << endl;
-    return 0;
+    glViewport(0, 0, screen->w, screen->h);
+    glOrtho(0.0,
+            (GLdouble) screen->w, (GLdouble) screen->h,
+            0.0,        // top edge
+            0.0, 1.0);  // near and far clipping planes
+
+    glClearColor(0, 0, 0, 0);
+
+    SDL_WM_SetCaption("title", "str2");
 
 	bool quit = false;
 	SDL_Event event;
 	while (!quit) {
-		// Draw!
-		DrawPixel(screen, 10, 10, 128, 4, 2);
-
 		while (SDL_PollEvent(&event)) {
 			switch (event.type) {
 				case SDL_MOUSEMOTION:
 					cout << "Mouse moved by " << event.motion.xrel << ", " << event.motion.yrel << endl;
+					cout << "Mouse at " << event.motion.x << ", " << event.motion.y << endl;
 					break;
 				case SDL_MOUSEBUTTONDOWN:
 					cout << "Mouse button " << event.button.button << " pressed at " << event.button.x << ", " << event.button.y << endl;
 					break;
 				case SDL_KEYDOWN:
+                    if (event.key.keysym.sym == SDLK_q) {
+                        quit = true;
+                    }
+                    break;
 				case SDL_QUIT:
 					quit = true;
 					break;
 			}
 		}
+        Draw();
+        SDL_GL_SwapBuffers();
 	}
 
 	return 0;
